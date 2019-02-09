@@ -30,8 +30,6 @@ public class TRCNetworkData
     private static HashMap<Integer, SendableChooser<Integer>> options;
     private static HashMap<String, NetworkTableEntry> dataPoints;
 
-    private static int vOptionsID;
-
     /**
      * Setup the sending of data to the driver station specifing with DIType how it should be done.
      * 
@@ -66,7 +64,6 @@ public class TRCNetworkData
         verbosityOptions[1] = " Info (Limited Messages)";
         verbosityOptions[2] = "Error (Critical Messages)";
         putOptions(verbosityOptions, 0);
-        vOptionsID = 0;
     }
 
     public static VerbosityType getVerbosity()
