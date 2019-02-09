@@ -51,7 +51,7 @@ public class TRCDriveInput
 	public static void bindButtonPress(int button, Runnable func)
 	{
 		pressFuncs.put(button, func);
-		TRCNetworkData.logString(VerbosityType.Log_Debug, "A binding has been created for the " + buttonToString(button) + " on the Xbox Controller");
+		TRCNetworkData.logString(VerbosityType.Log_Debug, "A binding has been created for the " + buttonToString(button) + " on the connected controller");
 	}
 	
 	private static String buttonToString(int button)
@@ -145,7 +145,6 @@ public class TRCDriveInput
 		double multiplier;
 		
 		multiplier = getRawThrottle();        // Range is -1 to 1, change to 0 to 2 cuz its easier to work with
-		// multiplier = multiplier / 2;                          // Reduce to a scale between 0 to 1
         multiplier = 1 - multiplier;                          // Throttle is backwards from expectation, flip it
         if (controller.getPOV() != 1)
         {

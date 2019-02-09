@@ -36,7 +36,6 @@ public class TRCDrivePID
     private static DriveActionType actionType;
     private static double measurement;
 
-
     /**
      * Set up the necessary elements to be able to drive the robot in autonomous with a PID control loop for accurate distances and degrees
      * 
@@ -92,7 +91,6 @@ public class TRCDrivePID
                 break;
         }
     }
-
 
     /**
      * Drive the robot forward (measurement) inches
