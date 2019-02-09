@@ -19,7 +19,7 @@ public class TRCDriveInput
 {
 	private static XboxController controller;
 
-    private static HashMap<Integer, Runnable> pressFuncs; 
+    private static HashMap<Integer, Runnable[]> pressFuncs;  // <button key, [pressed action, released action]>
 
 	private static double baseSpeed = 0.0;
     private static double boostSpeed = 0.0;
@@ -32,7 +32,7 @@ public class TRCDriveInput
 	 */
 	public static void initializeDriveInput(int port, double speedBase, double speedBoost)
 	{
-		pressFuncs = new HashMap<Integer, Runnable>();
+		pressFuncs = new HashMap<Integer, Runnable[]>();
 
 		controller = new XboxController(port);
 		
@@ -48,7 +48,7 @@ public class TRCDriveInput
 	 * @param button Button to bind to
 	 * @param func Function to be run
 	 */
-	public static void bindButtonPress(int button, Runnable func)
+	public static void bindButtonPress(int button, Runnable[] func)
 	{
 		pressFuncs.put(button, func);
 		TRCNetworkData.logString(VerbosityType.Log_Debug, "A binding has been created for the " + buttonToString(button) + " on the connected controller");
@@ -76,18 +76,16 @@ public class TRCDriveInput
 	 */
 	public static void updateBindings() 
 	{
-		int controllerPort = controller.getPort(); // get the port of the controller
-
-		if (pressFuncs.containsKey(controllerPort)) // if the joystick is supported on pressFuncs
+		for (Integer button : pressFuncs.keySet()) // get all supported buttons in pressFuncs
 		{
-			for (Integer button : pressFuncs.keySet()) // get all supported buttons in pressFuncs
-			{
-				boolean isPressed = getButton(button);
-				if (isPressed) pressFuncs.get(button).run();
-			}
+			boolean isPressed = getButton(button);
+			if (isPressed)
+				pressFuncs.get(button)[0].run();
+			else
+				pressFuncs.get(button)[1].run();
 		}
 	}
-	
+
 	/**
 	 * Get whether a certain button on a certain joystick is currently being pressed
 	 * 
@@ -96,31 +94,16 @@ public class TRCDriveInput
 	 */
 	public static boolean getButton(int button)
 	{
-		switch (button) {
-		case TRCController.BUTTON_A:
-			if (controller.getAButton()) return true;
-			return false;
-		case TRCController.BUTTON_B:
-			if (controller.getBButton()) return true;
-			return false;
-		case TRCController.BUTTON_X:
-			if (controller.getXButton()) return true;
-			return false;
-		case TRCController.BUTTON_Y:
-			if (controller.getYButton()) return true;
-			return false;
-		case TRCController.BUTTON_START:
-			if (controller.getStartButton()) return true;
-			return false;
-		case TRCController.BUTTON_BACK:
-			if (controller.getBackButton()) return true;
-			return false;
-		case TRCController.BUMPER_LEFT:
-			if (controller.getBumper(Hand.kLeft)) return true;
-			return false;
-		case TRCController.BUMPER_RIGHT:
-			if (controller.getBumper(Hand.kRight)) return true;
-			return false;
+		switch (button) 
+		{
+		case TRCController.BUTTON_A: return controller.getAButton();
+		case TRCController.BUTTON_B: return controller.getBButton();
+		case TRCController.BUTTON_X: return controller.getXButton();
+		case TRCController.BUTTON_Y: return controller.getYButton();
+		case TRCController.BUTTON_START: return controller.getStartButton();
+		case TRCController.BUTTON_BACK: return controller.getBackButton();
+		case TRCController.BUMPER_LEFT: return controller.getBumper(Hand.kLeft);
+		case TRCController.BUMPER_RIGHT: return controller.getBumper(Hand.kRight);
 		}
 		return false;
 	}
