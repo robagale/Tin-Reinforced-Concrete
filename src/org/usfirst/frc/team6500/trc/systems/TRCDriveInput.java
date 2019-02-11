@@ -7,19 +7,19 @@ package org.usfirst.frc.team6500.trc.systems;
 
 import java.util.HashMap;
 
+import org.usfirst.frc.team6500.trc.util.TRCController;
 import org.usfirst.frc.team6500.trc.util.TRCDriveParams;
 import org.usfirst.frc.team6500.trc.util.TRCNetworkData;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.VerbosityType;
-import org.usfirst.frc.team6500.trc.util.TRCController;
 
-import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
+import edu.wpi.first.wpilibj.XboxController;
 
 public class TRCDriveInput
 {
 	private static XboxController controller;
 
-    private static HashMap<Integer, Runnable[]> pressFuncs;  // <button key, [pressed action, released action]>
+    private static HashMap<Integer, Runnable[]> bindings;  // <button key, [pressed action, released action]>
 
 	private static double baseSpeed = 0.0;
     private static double boostSpeed = 0.0;
@@ -27,12 +27,12 @@ public class TRCDriveInput
 	/**
 	 * Setup the DriveInput class.  Do this before using any other methods in this class.
 	 * 
-	 * @param ports The ids of the USB ports the joysticks are plugged in to
+	 * @param ports The ids of the USB ports that the controller is plugged in to
 	 * @param speedBase The default base speed of the robot
 	 */
 	public static void initializeDriveInput(int port, double speedBase, double speedBoost)
 	{
-		pressFuncs = new HashMap<Integer, Runnable[]>();
+		bindings = new HashMap<Integer, Runnable[]>();
 
 		controller = new XboxController(port);
 		
@@ -43,17 +43,23 @@ public class TRCDriveInput
 	}
 	
 	/**
-	 * Assign a function to be run when a certain button on a certain joystick is pressed
+	 * Assign a function to be run when a certain button on the controller is pressed
 	 * 
 	 * @param button Button to bind to
 	 * @param func Function to be run
 	 */
-	public static void bindButtonPress(int button, Runnable[] func)
+	public static void bindButton(int button, Runnable[] func)
 	{
-		pressFuncs.put(button, func);
+		bindings.put(button, func);
 		TRCNetworkData.logString(VerbosityType.Log_Debug, "A binding has been created for the " + buttonToString(button) + " on the connected controller");
 	}
-	
+
+	/**
+	 * Get the string representation of a button index
+	 * 
+	 * @param button The button index to test
+	 * @return The string representation of the passed button index
+	 */
 	private static String buttonToString(int button)
 	{
 		switch (button)
@@ -67,27 +73,26 @@ public class TRCDriveInput
 			case TRCController.BUMPER_LEFT: return "Left bumper";
 			case TRCController.BUMPER_RIGHT: return "Right bumper";
 		}
-		return "";
+		return "<unrecognized button type>";
 	}
-    	
+    
 	/**
-	 * Checks every button on every Joystick, and if the button is pressed and has a function bound to it then
-	 * the function will be run
+	 * Checks every button on the controller, and if the button is pressed and has a
+	 * function bound to it then the function will be run
 	 */
-	public static void updateBindings() 
-	{
-		for (Integer button : pressFuncs.keySet()) // get all supported buttons in pressFuncs
+	public static void updateBindings() {
+		for (Integer button : bindings.keySet()) // get all supported buttons in pressFuncs
 		{
 			boolean isPressed = getButton(button);
 			if (isPressed)
-				pressFuncs.get(button)[0].run();
+				bindings.get(button)[0].run();
 			else
-				pressFuncs.get(button)[1].run();
+				bindings.get(button)[1].run();
 		}
 	}
 
 	/**
-	 * Get whether a certain button on a certain joystick is currently being pressed
+	 * Get whether a certain button on the controller is currently being pressed
 	 * 
 	 * @param button Number of button to check
 	 * @return True if button on joystick is pressed, false otherwise
@@ -119,7 +124,8 @@ public class TRCDriveInput
 	}
 	
 	/**
-	 * Calculates the value of the throttle in a manner which makes the number much more sensible
+	 * Calculates the value of the throttle in a manner which makes the number much
+	 * more sensible
 	 * 
 	 * @return The simplified throttle value
 	 */
@@ -140,10 +146,10 @@ public class TRCDriveInput
 		
 		return multiplier;
 	}
-	
+
 	/**
-	 * Get the raw value of a joystick's throttle
-	 * This value is kinda hard to work with, so use getThrottle for a better version
+	 * Get the raw value of a joystick's throttle. This value is complicated to work
+	 * with, use getThrottle for a more workable version
 	 * 
 	 * @return The value from the throttle which is returned by default
 	 */
@@ -153,10 +159,10 @@ public class TRCDriveInput
 	}
 	
 	/**
-	 * Get a TRCDriveParams which has all the values from joystick controllerPort for use in driving the robot
+	 * Get a TRCDriveParams which has all the values from the controller for use in
+	 * driving the robot
 	 * 
-	 * @param controllerPort What joystick to get values from
-	 * @return TRCDriveParams which have been set from values from the joystick controllerPort
+	 * @return TRCDriveParams which have been set from values from the controller
 	 */
 	public static TRCDriveParams getStickDriveParams()
 	{
