@@ -1,6 +1,6 @@
 /*
  *	TRCDriveInput
- * 		totally static class to handle input from the joysticks
+ * 		totally static class to handle input from the controller
  */
 
 package org.usfirst.frc.team6500.trc.systems;
@@ -133,15 +133,15 @@ public class TRCDriveInput
 	{
 		double multiplier;
 		
-		multiplier = getRawThrottle();        // Range is -1 to 1, change to 0 to 2 cuz its easier to work with
-        multiplier = 1 - multiplier;                          // Throttle is backwards from expectation, flip it
+		multiplier = getRawThrottle(); // Range is -1 to 1, change to 0 to 2 cuz its easier to work with
+        multiplier = 1 - multiplier;   // Throttle is backwards from expectation, flip it
         if (controller.getPOV() != 1)
         {
-            multiplier = multiplier * baseSpeed;              // Mix in some of that sweet default...
+            multiplier = multiplier * baseSpeed; // Mix in some of that default...
         }
         else
         {
-            multiplier = multiplier * boostSpeed;             // Unless the trigger is pressed, then mix in some of that sweet boost :)
+            multiplier = multiplier * boostSpeed; // Unless the trigger is pressed, then mix in some of that sweet boost :)
         }
 		
 		return multiplier;

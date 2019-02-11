@@ -89,6 +89,7 @@ public class TRCTypes
 		Forward,
 		Right,
 		Rotate,
+		Direct,
 	}
 
 	// Types of ways data can be sent to the driver station from the rio
@@ -122,7 +123,6 @@ public class TRCTypes
 			else                             { return false; }
 		}
 	}
-
 
 	public static Object encoderTypeToObject(int[] ports, double dpp, boolean lowres, boolean inverted, EncoderType type)
 	{
