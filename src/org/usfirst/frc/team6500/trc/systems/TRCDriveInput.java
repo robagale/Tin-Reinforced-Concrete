@@ -168,9 +168,18 @@ public class TRCDriveInput
 	{
 		TRCDriveParams params = new TRCDriveParams();
 		
-		params.setRawX(controller.getX(Hand.kRight));
-		params.setRawY(controller.getY(Hand.kRight));
-		params.setRawZ(controller.getX(Hand.kLeft));
+		double x = controller.getX(Hand.kRight);
+		double y = controller.getY(Hand.kRight);
+		double z = controller.getX(Hand.kLeft);
+
+		if (x < 0.1 && x > -0.1) x = 0.0;
+		if (y < 0.1 && y > -0.1) y = 0.0;
+		if (z < 0.1 && z > -0.1) z = 0.0;
+
+		params.setRawX(x);
+		params.setRawY(y);
+		params.setRawZ(z);
+
 		params.setM(getThrottle());
 		
 		return params;

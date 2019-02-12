@@ -113,7 +113,17 @@ public class TRCDrivePID
      */
     public static void driveDirect()
     {
-        if (mVector.getType() != TRCVector.TRCVECTORTYPE_3D || driveType != DriveType.Mecanum) return;
+        if (mVector.getType() != TRCVector.TRCVECTORTYPE_3D)
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveDirect(): not given a 3D vector");
+            return;
+        }
+
+        if (driveType != DriveType.Mecanum)
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveDirect(): tried to drive without Mecanum drive");
+            return;
+        }
         
         if (!driving)
         {
@@ -177,7 +187,11 @@ public class TRCDrivePID
      */
     public static void driveForwardBack()
     {
-        if (mVector.getType() != TRCVector.TRCVECTORTYPE_1D) return;
+        if (mVector.getType() != TRCVector.TRCVECTORTYPE_1D) 
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveForwardBack(): not given a 1D vector");
+            return;
+        }
 
         MiniPID PID = mVector.getUnitPID();
         if (!driving)
@@ -218,10 +232,20 @@ public class TRCDrivePID
      */
     public static void driveLeftRight()
     {
-        if (mVector.getType() != TRCVector.TRCVECTORTYPE_1D) return;
+        if (mVector.getType() != TRCVector.TRCVECTORTYPE_1D) 
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveLeftRight(): not given a 1D vector");
+            return;
+        }
+
+        if (driveType != DriveType.Mecanum)
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveLeftRight(): tried to strafe without Mecanum drive");
+            return;
+        }
 
         MiniPID PID = mVector.getUnitPID();
-        if (!driving && driveType == DriveType.Mecanum)
+        if (!driving)
         {
             prepareToDrive();
 
@@ -253,7 +277,11 @@ public class TRCDrivePID
      */
     public static void driveRotation()
     {
-        if (mVector.getType() != TRCVector.TRCVECTORTYPE_1D) return;
+        if (mVector.getType() != TRCVector.TRCVECTORTYPE_1D) 
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveRotation(): not given a 1D vector");
+            return;
+        }
 
         MiniPID PID = mVector.getUnitPID();
         if (!driving)
