@@ -18,10 +18,15 @@ public class TRCEncoderSet
 	/**
 	 * Consolidation of encoders on a robot's wheels for ease of use
 	 * 
-	 * @param dioports The digital input/output ports which the encoders are plugged into
-	 * @param dpp The distance per pulse of the wheels. Equation: (distance robot travels in one rotation) / (pulses per revolution)
-	 * @param lowres Only use the first channel for reading encoder values. Less accurate, but uses fewer ports. If this is enabled, dioports's consecutive values should be duplicates.
-	 * @param totalwheels How many encoders are plugged in. This must be half the length of dioports.
+	 * @param dioports    The digital input/output ports which the encoders are
+	 *                    plugged into
+	 * @param dpp         The distance per pulse of the wheels. Equation: (distance
+	 *                    robot travels in one rotation) / (pulses per revolution)
+	 * @param lowres      Only use the first channel for reading encoder values.
+	 *                    Less accurate, but uses fewer ports. If this is enabled,
+	 *                    dioports's consecutive values should be duplicates.
+	 * @param totalwheels How many encoders are plugged in. This must be half the
+	 *                    length of dioports.
 	 */
 	public TRCEncoderSet(int[] dioports, double[] dpp, boolean lowres, int totalwheels, EncoderType[] types)
 	{
@@ -48,7 +53,6 @@ public class TRCEncoderSet
 
 		TRCNetworkData.createDataPoint("EncoderSet " + this.toString());
 	}
-	
 	
 	/**
 	 * Resets all encoders to zero distance
@@ -113,7 +117,8 @@ public class TRCEncoderSet
 	}
 
 	/**
-	 * Gives the average absolute distance all encoders have traveled; useful for measuring rotation
+	 * Gives the average absolute distance all encoders have traveled; useful for
+	 * measuring rotation
 	 * 
 	 * @return The average of the absolute distances traveled by all the encoders
 	 */
