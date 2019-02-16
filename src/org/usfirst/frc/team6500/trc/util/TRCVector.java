@@ -23,8 +23,8 @@ public class TRCVector
      */
     public TRCVector(double linear, double strafe, double rotation)
     {
-        this.x = linear;
-        this.y = strafe;
+        this.x = strafe;
+        this.y = linear;
         this.z = rotation;
         this.type = TRCVECTORTYPE_3D;
 
@@ -49,13 +49,12 @@ public class TRCVector
     public int getType() { return this.type; }
 
 
-
-    public double getLinear() 
+    public double getStrafe() 
     { 
         if (this.type != TRCVECTORTYPE_3D) return -1;
         return this.x; 
     }
-    public double getStrafe() 
+    public double getLinear() 
     { 
         if (this.type != TRCVECTORTYPE_3D) return -1;
         return this.y; 
@@ -68,19 +67,18 @@ public class TRCVector
     public MiniPID getLinearPID()
     {
         if (this.type != TRCVECTORTYPE_3D) return null;
-        return this.xPID;
+        return this.yPID;
     }
     public MiniPID getStrafePID()
     {
         if (this.type != TRCVECTORTYPE_3D) return null;
-        return this.yPID;
+        return this.xPID;
     }
     public MiniPID getRotationPID()
     {
         if (this.type != TRCVECTORTYPE_3D) return null;
         return this.zPID;
     }
-
 
 
     public double getUnit()

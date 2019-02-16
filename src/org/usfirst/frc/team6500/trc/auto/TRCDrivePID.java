@@ -145,11 +145,11 @@ public class TRCDrivePID
 
                 double xNewSpeed = xPID.getOutput(encoders.getAverageDistanceTraveled()); // TODO:
                 double yNewSpeed = yPID.getOutput(encoders.getAverageDistanceTraveled()); // TODO:
-                double zNewSpeed = zPID.getOutput(gyro.getAngle()); // TODO:
+                double zNewSpeed = zPID.getOutput(gyro.getAngle());
  
-                double xSmoothedSpeed = autoSpeed.calculateSpeed(xNewSpeed, 1.0); // TODO:
-                double ySmoothedSpeed = autoSpeed.calculateSpeed(yNewSpeed, 1.0); // TODO:
-                double zSmoothedSpeed = autoSpeed.calculateSpeed(zNewSpeed, 1.0); // TODO:
+                double xSmoothedSpeed = autoSpeed.calculateSpeed(xNewSpeed, 1.0);
+                double ySmoothedSpeed = autoSpeed.calculateSpeed(yNewSpeed, 1.0);
+                double zSmoothedSpeed = autoSpeed.calculateSpeed(zNewSpeed, 1.0);
 
                 /* UPDATE DATA POINTS */
                 String[] dpNames = {
@@ -169,9 +169,9 @@ public class TRCDrivePID
                 ((TRCMecanumDrive) drive).driveCartesian(-xSmoothedSpeed, ySmoothedSpeed, zSmoothedSpeed);
                 // ^^^ ============================== ACTUALLY DRIVE ================================= ^^^
 
-                if (Math.abs(encoders.getAverageDistanceTraveled() - mVector.getLinear()) < deadband) xdeadbandcounter++; // TODO:
+                if (Math.abs(encoders.getAverageDistanceTraveled() - mVector.getStrafe()) < deadband) xdeadbandcounter++; // TODO:
                 if (xdeadbandcounter >= verificationMin) xdone = true;
-                if (Math.abs(encoders.getAverageDistanceTraveled() - mVector.getStrafe()) < deadband) ydeadbandcounter++; // TODO:
+                if (Math.abs(encoders.getAverageDistanceTraveled() - mVector.getLinear()) < deadband) ydeadbandcounter++; // TODO:
                 if (ydeadbandcounter >= verificationMin) ydone = true;
                 if (Math.abs(gyro.getAngle() - mVector.getRotation()) < deadband) zdeadbandcounter++;
                 if (zdeadbandcounter >= verificationMin) zdone = true;
