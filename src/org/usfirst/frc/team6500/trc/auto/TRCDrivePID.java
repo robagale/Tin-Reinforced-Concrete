@@ -166,7 +166,7 @@ public class TRCDrivePID
                 /* =================== */
 
                 // vvv =============================================================================== vvv
-                ((TRCMecanumDrive) drive).driveCartesian(-xSmoothedSpeed, ySmoothedSpeed, zSmoothedSpeed);
+                ((TRCMecanumDrive) drive).driveCartesian(-ySmoothedSpeed, xSmoothedSpeed, zSmoothedSpeed);
                 // ^^^ ============================== ACTUALLY DRIVE ================================= ^^^
 
                 if (Math.abs(encoders.getAverageDistanceTraveled() - mVector.getStrafe()) < deadband) xdeadbandcounter++; // TODO:
