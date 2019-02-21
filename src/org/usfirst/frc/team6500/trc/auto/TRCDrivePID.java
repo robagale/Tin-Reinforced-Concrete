@@ -12,29 +12,28 @@ import org.usfirst.frc.team6500.trc.wrappers.systems.drives.TRCMecanumDrive;
 
 import org.usfirst.frc.team6500.trc.util.TRCNetworkData;
 import org.usfirst.frc.team6500.trc.util.TRCSpeed;
-import org.usfirst.frc.team6500.trc.util.TRCVector;
-import org.usfirst.frc.team6500.trc.util.TRCTypes.DriveActionType;
+import org.usfirst.frc.team6500.trc.util.TRCTypes.Direction;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.DriveType;
+import org.usfirst.frc.team6500.trc.util.TRCTypes.RobotSide;
+import org.usfirst.frc.team6500.trc.util.TRCTypes.UnitType;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.VerbosityType;
 
 import edu.wpi.first.wpilibj.RobotState;
+import edu.wpi.first.wpilibj.drive.RobotDriveBase.MotorType;
 
 public class TRCDrivePID
 {
-    private static final double deadband = 2.0;
-    private static final int verificationMin = 25;
+    protected static final double deadband = 2.0;
+    protected static final int verificationMin = 25;
 
     private static TRCEncoderSet encoders;
     private static TRCGyroBase gyro;
     private static Object drive;
 
     private static boolean driving;
-    private static double maxSpeed = 0.0;
+    private static boolean autoAuthorized = false;
+    protected static double maxSpeed = 0.0;
     private static DriveType driveType;
-
-    private static TRCSpeed autoSpeed;
-
-    private static TRCVector mVector;
 
     /**
      * Set up the necessary elements to be able to drive the robot in autonomous
@@ -55,186 +54,125 @@ public class TRCDrivePID
         maxSpeed = topSpeed;
 
         TRCNetworkData.logString(VerbosityType.Log_Info, "DrivePID is online.");
-        TRCNetworkData.createDataPoint("PIDSetpoint_X");
-        TRCNetworkData.createDataPoint("PIDSetpoint_Y");
-        TRCNetworkData.createDataPoint("PIDSetpoint_Z");
-        TRCNetworkData.createDataPoint("PIDSetpoint_Generic");
 
-        TRCNetworkData.createDataPoint("PIDOutput_X");
-        TRCNetworkData.createDataPoint("PIDOutput_Y");
-        TRCNetworkData.createDataPoint("PIDOutput_Z");
-        TRCNetworkData.createDataPoint("PIDOutput_Generic");
-        TRCNetworkData.createDataPoint("PIDOutputSmoothed_X");
-        TRCNetworkData.createDataPoint("PIDOutputSmoothed_Y");
-        TRCNetworkData.createDataPoint("PIDOutputSmoothed_Z");
-        TRCNetworkData.createDataPoint("PIDOutputSmoothed_Generic");
+        TRCNetworkData.createDataPoint("PIDSetpoint");
+        TRCNetworkData.createDataPoint("PIDOutput");
+        TRCNetworkData.createDataPoint("PIDOutputSmoothed");
     }
 
     /**
-     * Executes the specified action
-     * 
-     * @param driveAction The type of action the robot should take (one of
-     *                    {@link DriveActionType})
-     * @param unit        The inches/degrees of the action
+     * Gives the auto driving functions permission to move the robot in a state
+     * other than Autonomous
      */
-    public static void run(DriveActionType driveAction, double unit)
+    public static void grantSubautonomousAction()
     {
-        TRCVector vector = new TRCVector(unit);
-        run(driveAction, vector);
+        autoAuthorized = true;
     }
 
     /**
-     * Executes the specified action
-     * 
-     * @param driveAction The type of action the robot should take (one of
-     *                    {@link DriveActionType})
-     * @param vector      The vector of the action
+     * Disables the auto driving functions from moving the robot in any other state
+     * than Autonomous
      */
-    public static void run(DriveActionType driveAction, TRCVector vector)
+    public static void denySubautonomousAction()
+    {
+        autoAuthorized = false;
+    }
+
+    /**
+     * Executes an action based on the specified vector
+     * 
+     * @param action The type of action (a {@link TRCVector}) the robot should take
+     */
+    public static void drive(TRCVector action)
     {
         driving = false;
-        mVector = vector;
-
-        autoSpeed = new TRCSpeed();
-
-        switch(driveAction)
+        if (!action.getIsValid())
         {
-            case Forward: driveForwardBack(); break;
-            case Right: driveLeftRight(); break;
-            case Rotate: driveRotation(); break;
-            case Direct: driveDirect(); break;
-            default: break;
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: drive(): the specified action is not valid");
+            return;
+        }
+
+        encoders.resetAllEncoders();
+        gyro.reset();
+
+        switch (action.getType())
+        {
+            case ForwardBack: driveForwardBack(action); break;
+            case   LeftRight: driveLeftRight(action); break;
+            case    Rotation: driveRotation(action); break;
+            case    Diagonal: driveDiagonal(action); break;
+            case    OnCorner: driveOnCorner(action); break;
+            case      OnAxis: driveOnAxis(action); break;
         }
     }
 
     /**
-     * Drive the robot directly with the specified vector, only works with the
-     * Mecanum drive type
+     * Drive the robot forward [or backward] an amount of inches. See
+     * https://www.roboteq.com/images/article-images/frontpage/wheel-rotations.jpg
+     * for details.
+     * 
+     * @param action the action (a {@link TRCVector}) in which to actually perform
      */
-    public static void driveDirect()
+    protected static void driveForwardBack(TRCVector action)
     {
-        if (mVector.getType() != TRCVector.TRCVECTORTYPE_3D)
+        if (action.getUnitType() == UnitType.Degrees) 
         {
-            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveDirect(): not given a 3D vector");
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveForwardBack(): given value in Degrees");
             return;
         }
 
-        if (driveType != DriveType.Mecanum)
+        if (!RobotState.isAutonomous() && !autoAuthorized) // check for clearance
         {
-            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveDirect(): tried to drive without Mecanum drive");
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveForwardBack(): tried to drive subautonomously without permission");
             return;
         }
-        
-        if (!driving)
+
+        MiniPID PID = new MiniPID(-1.0, 0.0, 0.0);
+        PID.setOutputLimits(-maxSpeed, maxSpeed);
+        PID.setSetpoint(action.translateValue(UnitType.Inches));
+        TRCSpeed autoSpeed = new TRCSpeed();
+
+        if (!driving) return;
+
+        driving = true;
+        int deadbandcounter = 0;
+
+        while (deadbandcounter < verificationMin)
         {
-            prepareToDrive();
-            driving = true;
+            double newSpeed = PID.getOutput(encoders.getAverageDistanceTraveled());
+            double smoothedSpeed = autoSpeed.calculateSpeed(newSpeed, 0.85);
+
+            String[] dpNames = {"PIDOutput", "PIDOutputSmoothed"};
+            Object[] dpValues = {newSpeed, smoothedSpeed};
+            updateDriveDataPoints(dpNames, dpValues);
+
+            if (driveType == DriveType.Mecanum)
+            {
+                ((TRCMecanumDrive) drive).driveCartesian(-smoothedSpeed, 0.0, 0.0);
+            }
+            else if (driveType == DriveType.Differential)
+            {
+                ((TRCDifferentialDrive) drive).arcadeDrive(smoothedSpeed, 0.0, false);
+            }
             
-            MiniPID xPID = mVector.getLinearPID();
-            MiniPID yPID = mVector.getStrafePID();
-            MiniPID zPID = mVector.getRotationPID();
-    
-            int xdeadbandcounter = 0, ydeadbandcounter = 0, zdeadbandcounter = 0;
-            boolean xdone = false, ydone = false, zdone = false;
-            while (RobotState.isAutonomous()) // infinite loop if the robot is autonomous
-            {
-                // TODO: ALL ENCODER STUFFS NEED TO BE FIXED
-                double x = mVector.getLinear();
-                double y = mVector.getStrafe();
-                double z = mVector.getRotation();
-
-                double xNewSpeed = xPID.getOutput(encoders.getAverageDistanceTraveled()); // TODO:
-                double yNewSpeed = yPID.getOutput(encoders.getAverageDistanceTraveled()); // TODO:
-                double zNewSpeed = zPID.getOutput(gyro.getAngle());
- 
-                double xSmoothedSpeed = autoSpeed.calculateSpeed(xNewSpeed, 1.0);
-                double ySmoothedSpeed = autoSpeed.calculateSpeed(yNewSpeed, 1.0);
-                double zSmoothedSpeed = autoSpeed.calculateSpeed(zNewSpeed, 1.0);
-
-                /* UPDATE DATA POINTS */
-                String[] dpNames = {
-                    "PIDSetpoint_X", "PIDSetpoint_Y", "PIDSetpoint_Z",
-                    "PIDOutput_X", "PIDOutput_Y", "PIDOutput_Z",
-                    "PIDOutputSmoothed_X", "PIDOutputSmoothed_Y", "PIDOutputSmoothed_Z"
-                };
-                Object[] dpValues = {
-                    x, y, z,
-                    xNewSpeed, yNewSpeed, zNewSpeed,
-                    xSmoothedSpeed, ySmoothedSpeed, zSmoothedSpeed
-                };
-                updateDriveDataPoints(dpNames, dpValues);
-                /* =================== */
-
-                // vvv =============================================================================== vvv
-                ((TRCMecanumDrive) drive).driveCartesian(-ySmoothedSpeed, xSmoothedSpeed, zSmoothedSpeed);
-                // ^^^ ============================== ACTUALLY DRIVE ================================= ^^^
-
-                if (Math.abs(encoders.getAverageDistanceTraveled() - mVector.getStrafe()) < deadband) xdeadbandcounter++; // TODO:
-                if (xdeadbandcounter >= verificationMin) xdone = true;
-                if (Math.abs(encoders.getAverageDistanceTraveled() - mVector.getLinear()) < deadband) ydeadbandcounter++; // TODO:
-                if (ydeadbandcounter >= verificationMin) ydone = true;
-                if (Math.abs(gyro.getAngle() - mVector.getRotation()) < deadband) zdeadbandcounter++;
-                if (zdeadbandcounter >= verificationMin) zdone = true;
-
-                if (xdone && ydone && zdone) break;
-            }
-            driving = false;
+            double difference = Math.abs(encoders.getAverageDistanceTraveled() - action.translateValue(UnitType.Inches));
+            if (difference < deadband) deadbandcounter++; // if in the deadband, increment the counter
         }
+        driving = false;
     }
 
     /**
-     * Drive the robot forward (measurement) inches
+     * Drive the robot side to side in inches (exclusive to mecanum). See
+     * https://www.roboteq.com/images/article-images/frontpage/wheel-rotations.jpg
+     * for details.
+     * 
+     * @param action the action (a {@link TRCVector}) in which to actually perform
      */
-    public static void driveForwardBack()
+    protected static void driveLeftRight(TRCVector action)
     {
-        if (mVector.getType() != TRCVector.TRCVECTORTYPE_1D) 
+        if (action.getUnitType() == UnitType.Degrees) 
         {
-            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveForwardBack(): not given a 1D vector");
-            return;
-        }
-
-        MiniPID PID = mVector.getUnitPID();
-        if (!driving)
-        {
-            prepareToDrive();
-    
-            driving = true;
-            int deadbandcounter = 0;
-
-            while (deadbandcounter < verificationMin && RobotState.isAutonomous())
-            {
-                double newSpeed = PID.getOutput(encoders.getAverageDistanceTraveled());
-                double smoothedSpeed = autoSpeed.calculateSpeed(newSpeed, 0.85);
-
-                String[] dpNames = {"PIDOutput_Generic", "PIDOutputSmoothed_Generic"};
-                Object[] dpValues = {newSpeed, smoothedSpeed};
-                updateDriveDataPoints(dpNames, dpValues);
-
-                if (driveType == DriveType.Mecanum)
-                {
-                    ((TRCMecanumDrive) drive).driveCartesian(-smoothedSpeed, 0.0, 0.0);
-                }
-                else if (driveType == DriveType.Differential)
-                {
-                    ((TRCDifferentialDrive) drive).arcadeDrive(smoothedSpeed, 0.0, false);
-                }
-                if (Math.abs(encoders.getAverageDistanceTraveled() - mVector.getUnit()) < deadband) 
-                { // if in the deadband
-                    deadbandcounter++;
-                }
-            }
-            driving = false;
-        }
-    }
-
-    /**
-     * Drive the robot right (measurement) inches (exclusive to mecanum)
-     */
-    public static void driveLeftRight()
-    {
-        if (mVector.getType() != TRCVector.TRCVECTORTYPE_1D) 
-        {
-            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveLeftRight(): not given a 1D vector");
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveLeftRight(): given a value in Degrees");
             return;
         }
 
@@ -244,156 +182,332 @@ public class TRCDrivePID
             return;
         }
 
-        MiniPID PID = mVector.getUnitPID();
-        if (!driving)
+        if (!RobotState.isAutonomous() && !autoAuthorized) // check for clearance
         {
-            prepareToDrive();
-
-            driving = true;
-            int deadbandcounter = 0;
-
-            while (deadbandcounter < verificationMin && RobotState.isAutonomous())
-            {
-                double newSpeed = PID.getOutput(encoders.getAverageDistanceTraveled());
-                double smoothedSpeed = autoSpeed.calculateSpeed(newSpeed, 1.0);
-
-                String[] dpNames = {"PIDOutput_Generic", "PIDOutputSmoothed_Generic"};
-                Object[] dpValues = {newSpeed, smoothedSpeed};
-                updateDriveDataPoints(dpNames, dpValues);
-
-                ((TRCMecanumDrive) drive).driveCartesian(0.0, smoothedSpeed, 0.0);
-
-                if (Math.abs(encoders.getAverageDistanceTraveled() - mVector.getUnit()) < deadband) 
-                { // if in the deadband
-                    deadbandcounter++;
-                }
-            }
-            driving = false;
-        }
-    }
-
-    /**
-     * Rotate the robot (measurement) degrees
-     */
-    public static void driveRotation()
-    {
-        if (mVector.getType() != TRCVector.TRCVECTORTYPE_1D) 
-        {
-            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveRotation(): not given a 1D vector");
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveLeftRight(): tried to drive subautonomously without permission");
             return;
         }
 
-        MiniPID PID = mVector.getUnitPID();
-        if (!driving)
+        MiniPID PID = new MiniPID(-1.0, 0.0, 0.0);
+        PID.setOutputLimits(-maxSpeed, maxSpeed);
+        PID.setSetpoint(action.translateValue(UnitType.Inches));
+        TRCSpeed autoSpeed = new TRCSpeed();
+
+        if (!driving) return;
+
+        driving = true;
+        int deadbandcounter = 0;
+
+        while (deadbandcounter < verificationMin)
         {
-            prepareToDrive();
+            double newSpeed = PID.getOutput(encoders.getAverageDistanceTraveled());
+            double smoothedSpeed = autoSpeed.calculateSpeed(newSpeed, 1.0);
 
-            driving = true;
-            int deadbandcounter = 0;
+            String[] dpNames = {"PIDOutput", "PIDOutputSmoothed"};
+            Object[] dpValues = {newSpeed, smoothedSpeed};
+            updateDriveDataPoints(dpNames, dpValues);
 
-            while (deadbandcounter < verificationMin && RobotState.isAutonomous())
-            {
-                double newSpeed = PID.getOutput(gyro.getAngle());
-                double smoothedSpeed = autoSpeed.calculateSpeed(newSpeed, 1.0);
+            ((TRCMecanumDrive) drive).driveCartesian(0.0, smoothedSpeed, 0.0);
 
-                String[] dpNames = {"PIDOutput_Generic", "PIDOutputSmoothed_Generic"};
-                Object[] dpValues = {newSpeed, smoothedSpeed};
-                updateDriveDataPoints(dpNames, dpValues);
-
-                if (driveType == DriveType.Mecanum)
-                {
-                    ((TRCMecanumDrive) drive).driveCartesian(0.0, 0.0, smoothedSpeed);
-                }
-                else if (driveType == DriveType.Differential)
-                {
-                    ((TRCDifferentialDrive) drive).arcadeDrive(0.0, smoothedSpeed, false);
-                }
-
-                if (Math.abs(gyro.getAngle() - mVector.getUnit()) < deadband) 
-                { // if in the deadband
-                    deadbandcounter++;
-                }
-            }
-            driving = false;
+            double difference = Math.abs(encoders.getAverageDistanceTraveled() - action.translateValue(UnitType.Inches));
+            if (difference < deadband) deadbandcounter++; // if in the deadband, increment the counter
         }
+        driving = false;
     }
 
     /**
-     * Prepare PIDs for driving & and update data points
+     * Rotate the robot on the center a certain degrees. See
+     * https://www.roboteq.com/images/article-images/frontpage/wheel-rotations.jpg
+     * for details.
+     * 
+     * @param action the action (a {@link TRCVector}) in which to actually perform
      */
-    private static void prepareToDrive()
+    protected static void driveRotation(TRCVector action)
     {
-        autoSpeed.reset();
-
-        if (mVector.getType() == TRCVector.TRCVECTORTYPE_3D) 
+        if (action.getUnitType() == UnitType.Inches) 
         {
-            MiniPID xPID = mVector.getLinearPID();
-            MiniPID yPID = mVector.getStrafePID();
-            MiniPID zPID = mVector.getRotationPID();
-
-            // reset PIDS
-            xPID.reset();
-            yPID.reset();
-            zPID.reset();
-
-            // set setpoints
-            xPID.setSetpoint(mVector.getLinear());
-            yPID.setSetpoint(mVector.getStrafe());
-            zPID.setSetpoint(mVector.getRotation());
-
-            // update data points
-            TRCNetworkData.updateDataPoint("PIDSetpoint_X", mVector.getLinear());
-            TRCNetworkData.updateDataPoint("PIDSetpoint_Y", mVector.getStrafe());
-            TRCNetworkData.updateDataPoint("PIDSetpoint_Z", mVector.getRotation());
-            TRCNetworkData.updateDataPoint("PIDSetpoint_Generic", 0.0);
-
-            // set output limits
-            xPID.setOutputLimits(-maxSpeed, maxSpeed);
-            yPID.setOutputLimits(-maxSpeed, maxSpeed);
-            zPID.setOutputLimits(-maxSpeed, maxSpeed);
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveRotation(): given a value in Inches");
+            return;
         }
-        else if (mVector.getType() == TRCVector.TRCVECTORTYPE_1D)
+
+        if (!RobotState.isAutonomous() && !autoAuthorized) // check for clearance
         {
-            MiniPID PID = mVector.getUnitPID();
-
-            PID.reset();
-            PID.setSetpoint(mVector.getUnit());
-
-            TRCNetworkData.updateDataPoint("PIDSetpoint_X", 0.0);
-            TRCNetworkData.updateDataPoint("PIDSetpoint_Y", 0.0);
-            TRCNetworkData.updateDataPoint("PIDSetpoint_Z", 0.0);
-            TRCNetworkData.updateDataPoint("PIDSetpoint_Generic", mVector.getUnit());
-
-            PID.setOutputLimits(-maxSpeed, maxSpeed);
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveRotation(): tried to drive subautonomously without permission");
+            return;
         }
+
+        MiniPID PID = new MiniPID(-1.0, 0.0, 0.0);
+        PID.setOutputLimits(-maxSpeed, maxSpeed);
+        PID.setSetpoint(action.translateValue(UnitType.Degrees));
+        TRCSpeed autoSpeed = new TRCSpeed();
+
+        if (!driving) return;
+
+        driving = true;
+        int deadbandcounter = 0;
+
+        while (deadbandcounter < verificationMin)
+        {
+            double newSpeed = PID.getOutput(gyro.getAngle());
+            double smoothedSpeed = autoSpeed.calculateSpeed(newSpeed, 1.0);
+
+            String[] dpNames = {"PIDOutput", "PIDOutputSmoothed"};
+            Object[] dpValues = {newSpeed, smoothedSpeed};
+            updateDriveDataPoints(dpNames, dpValues);
+
+            if (driveType == DriveType.Mecanum)
+            {
+                ((TRCMecanumDrive) drive).driveCartesian(0.0, 0.0, smoothedSpeed);
+            }
+            else if (driveType == DriveType.Differential)
+            {
+                ((TRCDifferentialDrive) drive).arcadeDrive(0.0, smoothedSpeed, false);
+            }
+
+            double difference = Math.abs(gyro.getAngle() - action.translateValue(UnitType.Degrees));
+            if (difference < deadband) deadbandcounter++; // if in the deadband, increment the counter
+        }
+        driving = false;
     }
 
     /**
-     * Update driving datapoints based on if the vector is 1D or 3D
+     * Moves the robot in a diagonal bound (Up-Left, Up-Right, Down-Left, or
+     * Down-Right) direction (exclusive to mecanum). See
+     * https://www.roboteq.com/images/article-images/frontpage/wheel-rotations.jpg
+     * for details.
+     * 
+     * @param action the action (a {@link TRCVector}) in which to actually perform
+     */
+    protected static void driveDiagonal(TRCVector action)
+    {
+        if (action.getUnitType() == UnitType.Degrees) 
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveDiagonal(): giving a value in Degrees");
+            return;
+        }
+
+        if (driveType != DriveType.Mecanum)
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveDiagonal(): tried to drive diagonally without Mecanum drive");
+            return;
+        }
+
+        if (!RobotState.isAutonomous() && !autoAuthorized) // check for clearance
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveDiagonal(): tried to drive subautonomously without permission");
+            return;
+        }
+
+        MiniPID PID = new MiniPID(-1.0, 0.0, 0.0);
+        PID.setOutputLimits(-maxSpeed, maxSpeed);
+        TRCSpeed autoSpeed = new TRCSpeed();
+
+        // override setpoint setting looking for inversion
+        double inversion = 1.0;
+        if (action.getDirection() == Direction.BackwardLeft || action.getDirection() == Direction.BackwardRight || action.translateValue(UnitType.General) < 0.0) 
+        {
+            inversion = -1.0; // invert
+        }
+        PID.setSetpoint(action.translateValue(UnitType.Inches)*inversion);
+
+        if (driving) return;
+
+        driving = true;
+        int deadbandcounter = 0;
+
+        while (deadbandcounter < verificationMin)
+        {
+            double newSpeed = PID.getOutput(encoders.getAverageDistanceTraveled());
+            double smoothedSpeed = autoSpeed.calculateSpeed(newSpeed, 1.0);
+
+            String[] dpNames = {"PIDOutput", "PIDOutputSmoothed"};
+            Object[] dpValues = {newSpeed, smoothedSpeed};
+            updateDriveDataPoints(dpNames, dpValues);
+
+            TRCMecanumDrive mDrive = (TRCMecanumDrive)drive;
+            if (action.getDirection() == Direction.ForwardLeft || action.getDirection() == Direction.BackwardRight)
+            {
+                mDrive.driveWheel(MotorType.kFrontLeft, 0.0);               // drive front left at none
+                mDrive.driveWheel(MotorType.kFrontRight, smoothedSpeed);    // drive front right at speed
+                mDrive.driveWheel(MotorType.kRearLeft, smoothedSpeed);      // drive rear left at speed
+                mDrive.driveWheel(MotorType.kRearRight, 0.0);               // drive rear right at none
+            }
+            else if (action.getDirection() == Direction.ForwardRight || action.getDirection() == Direction.BackwardLeft)
+            {
+                mDrive.driveWheel(MotorType.kFrontLeft, smoothedSpeed); // drive front left at speed
+                mDrive.driveWheel(MotorType.kFrontRight, 0.0);          // drive front right at none
+                mDrive.driveWheel(MotorType.kRearLeft, 0.0);            // drive rear left at none
+                mDrive.driveWheel(MotorType.kRearRight, smoothedSpeed); // drive rear right at speed
+            }
+
+            double difference = Math.abs(encoders.getAverageDistanceTraveled() - action.translateValue(UnitType.Inches));
+            if (difference < deadband) deadbandcounter++; // if in the deadband, increment the counter
+        }
+        driving = false;
+    }
+
+    /**
+     * Moves the robot on a corner of the robot (exclusive to mecanum). See
+     * https://www.roboteq.com/images/article-images/frontpage/wheel-rotations.jpg
+     * for details.
+     * 
+     * @param action the action (a {@link TRCVector}) in which to actually perform
+     */
+    protected static void driveOnCorner(TRCVector action)
+    {
+        if (action.getUnitType() == UnitType.Inches) 
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveOnCorner(): given a value in Inches");
+            return;
+        }
+
+        if (driveType != DriveType.Mecanum)
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveOnCorner(): tried to drive on a corner without Mecanum drive");
+            return;
+        }
+
+        if (!RobotState.isAutonomous() && !autoAuthorized) // check for clearance
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveOnCorner(): tried to drive subautonomously without permission");
+            return;
+        }
+
+        MiniPID PID = new MiniPID(-1.0, 0.0, 0.0);
+        PID.setOutputLimits(-maxSpeed, maxSpeed);
+        PID.setSetpoint(action.translateValue(UnitType.Degrees));
+        TRCSpeed autoSpeed = new TRCSpeed();
+
+        if (driving) return;
+
+        driving = true;
+        int deadbandcounter = 0;
+
+        while (deadbandcounter < verificationMin)
+        {
+            double newSpeed = PID.getOutput(gyro.getAngle());
+            double smoothedSpeed = autoSpeed.calculateSpeed(newSpeed, 1.0);
+
+            String[] dpNames = {"PIDOutput", "PIDOutputSmoothed"};
+            Object[] dpValues = {newSpeed, smoothedSpeed};
+            updateDriveDataPoints(dpNames, dpValues);
+
+            TRCMecanumDrive mDrive = (TRCMecanumDrive)drive;
+            if (action.getTurnWheel() == MotorType.kFrontLeft)
+            {
+                mDrive.driveWheel(MotorType.kFrontLeft, 0.0);               // drive front left at none
+                mDrive.driveWheel(MotorType.kFrontRight, -smoothedSpeed);   // drive front right at negative speed
+                mDrive.driveWheel(MotorType.kRearLeft, smoothedSpeed);      // drive rear left at speed
+                mDrive.driveWheel(MotorType.kRearRight, -smoothedSpeed);    // drive rear right at negative speed
+            }
+            else if (action.getTurnWheel() == MotorType.kFrontRight)
+            {
+                mDrive.driveWheel(MotorType.kFrontLeft, -smoothedSpeed);    // drive front left at negative speed
+                mDrive.driveWheel(MotorType.kFrontRight, 0.0);              // drive front right at none
+                mDrive.driveWheel(MotorType.kRearLeft, -smoothedSpeed);     // drive rear left at negative speed
+                mDrive.driveWheel(MotorType.kRearRight, smoothedSpeed);     // drive rear right at speed
+            }
+            else if (action.getTurnWheel() == MotorType.kRearLeft)
+            {
+                mDrive.driveWheel(MotorType.kFrontLeft, -smoothedSpeed);    // drive front left at negative speed
+                mDrive.driveWheel(MotorType.kFrontRight, smoothedSpeed);    // drive front right at speed
+                mDrive.driveWheel(MotorType.kRearLeft, 0.0);                // drive rear left at none
+                mDrive.driveWheel(MotorType.kRearRight, smoothedSpeed);     // drive rear right at speed
+            }
+            else if (action.getTurnWheel() == MotorType.kRearRight)
+            {
+                mDrive.driveWheel(MotorType.kFrontLeft, smoothedSpeed);     // drive front left at speed
+                mDrive.driveWheel(MotorType.kFrontRight, -smoothedSpeed);   // drive front right at negative speed
+                mDrive.driveWheel(MotorType.kRearLeft, smoothedSpeed);      // drive rear left at speed
+                mDrive.driveWheel(MotorType.kRearRight, 0.0);               // drive rear right at none
+            }
+
+            double difference = Math.abs(gyro.getAngle() - action.translateValue(UnitType.Degrees));
+            if (difference < deadband) deadbandcounter++; // if in the deadband, increment the counter
+        }
+        driving = false;
+    }
+
+    /**
+     * Turns the robot on an axis (side) of the robot, only works with front and
+     * rear sides (exclusive to mecanum). See
+     * https://www.roboteq.com/images/article-images/frontpage/wheel-rotations.jpg
+     * for details.
+     * 
+     * @param action the action (a {@link TRCVector}) in which to actually perform
+     */
+    protected static void driveOnAxis(TRCVector action)
+    {
+        if (action.getUnitType() == UnitType.Inches) 
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveOnAxis(): given a value in Inches");
+            return;
+        }
+
+        if (driveType != DriveType.Mecanum)
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveOnAxis(): tried to drive on an axis without Mecanum drive");
+            return;
+        }
+
+        if (!RobotState.isAutonomous() && !autoAuthorized) // check for clearance
+        {
+            TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: driveOnAxis(): tried to drive subautonomously without permission");
+            return;
+        }
+
+        MiniPID PID = new MiniPID(-1.0, 0.0, 0.0);
+        PID.setOutputLimits(-maxSpeed, maxSpeed);
+        PID.setSetpoint(action.translateValue(UnitType.Degrees));
+        TRCSpeed autoSpeed = new TRCSpeed();
+
+        if (driving) return;
+
+        driving = true;
+        int deadbandcounter = 0;
+
+        while (deadbandcounter < verificationMin)
+        {
+            double newSpeed = PID.getOutput(gyro.getAngle());
+            double smoothedSpeed = autoSpeed.calculateSpeed(newSpeed, 1.0);
+
+            String[] dpNames = {"PIDOutput", "PIDOutputSmoothed"};
+            Object[] dpValues = {newSpeed, smoothedSpeed};
+            updateDriveDataPoints(dpNames, dpValues);
+
+            TRCMecanumDrive mDrive = (TRCMecanumDrive)drive;
+            if (action.getTurnSide() == RobotSide.kFront)
+            {
+                mDrive.driveWheel(MotorType.kFrontLeft, 0.0);              // drive front left at none
+                mDrive.driveWheel(MotorType.kFrontRight, 0.0);             // drive front right at none
+                mDrive.driveWheel(MotorType.kRearLeft, -smoothedSpeed);    // drive rear left at negative speed
+                mDrive.driveWheel(MotorType.kRearRight, smoothedSpeed);    // drive rear right at speed
+            }
+            else if (action.getTurnSide() == RobotSide.kRear)
+            {
+                mDrive.driveWheel(MotorType.kFrontLeft, smoothedSpeed);    // drive front left at speed
+                mDrive.driveWheel(MotorType.kFrontRight, -smoothedSpeed);  // drive front right at negative speed
+                mDrive.driveWheel(MotorType.kRearLeft, 0.0);               // drive rear left at none
+                mDrive.driveWheel(MotorType.kRearRight, 0.0);              // drive rear right at none
+            }
+
+            double difference = Math.abs(gyro.getAngle() - action.translateValue(UnitType.Degrees));
+            if (difference < deadband) deadbandcounter++; // if in the deadband, increment the counter
+        }
+        driving = false;
+    }
+
+    /**
+     * Update driving datapoints
      * 
      * @param names  An array of the names of the Data Points to update
      * @param values An array of the values of the Data Points to update
      */
     private static void updateDriveDataPoints(String[] names, Object[] values)
     {
-        if (mVector.getType() == TRCVector.TRCVECTORTYPE_1D)
-        {
-            TRCNetworkData.updateDataPoint("PIDSetpoint_X", 0.0);
-            TRCNetworkData.updateDataPoint("PIDSetpoint_Y", 0.0);
-            TRCNetworkData.updateDataPoint("PIDSetpoint_Z", 0.0);
-            TRCNetworkData.updateDataPoint("PIDOuput_X", 0.0);
-            TRCNetworkData.updateDataPoint("PIDOuput_Y", 0.0);
-            TRCNetworkData.updateDataPoint("PIDOuput_Z", 0.0);
-            TRCNetworkData.updateDataPoint("PIDOutputSmoothed_X", 0.0);
-            TRCNetworkData.updateDataPoint("PIDOutputSmoothed_Y", 0.0);
-            TRCNetworkData.updateDataPoint("PIDOutputSmoothed_Z", 0.0);
-        }
-        else if (mVector.getType() == TRCVector.TRCVECTORTYPE_3D)
-        {
-            TRCNetworkData.updateDataPoint("PIDSetpoint_Generic", 0.0);
-            TRCNetworkData.updateDataPoint("PIDOuput_Generic", 0.0);
-            TRCNetworkData.updateDataPoint("PIDOutputSmoothed_Generic", 0.0);
-        }
+        TRCNetworkData.updateDataPoint("PIDSetpoint", 0.0);
+        TRCNetworkData.updateDataPoint("PIDOuput", 0.0);
+        TRCNetworkData.updateDataPoint("PIDOutputSmoothed", 0.0);
 
         if (names.length != values.length) TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: updateDriveDataPoints(): names and values have different sizes, points not updated.");
 

@@ -76,6 +76,26 @@ public class TRCTypes
 		FullReverse,
 	}
 
+	public enum RobotSide
+	{
+		kFront,
+		kLeft,
+		kRight,
+		kRear
+	}
+
+	public enum Direction
+	{
+		Forward,
+		ForwardRight,
+		Right,
+		BackwardRight,
+		Backward,
+		BackwardLeft,
+		Left,
+		ForwardLeft
+	}
+
 	// Types of actions a TRCPneumaticSystem can execute
 	public enum PneumaticSystemActionType
 	{
@@ -84,12 +104,22 @@ public class TRCTypes
 	}
 
 	// Types of actions a drivetrain can execute in autonomous
-	public enum DriveActionType
+	public enum DriveAction
 	{
-		Forward,
-		Right,
-		Rotate,
-		Direct,
+		ForwardBack,
+		LeftRight,
+		Rotation,
+		Diagonal,
+		OnCorner,
+		OnAxis
+	}
+
+	public enum UnitType
+	{
+		General, // General is a -1.0 to 1.0 representing anything
+				 // As an understood rule, 1.0 of General translates to 12 inches or 360 degrees
+		Inches, // inches measurement
+		Degrees // 0 - 360
 	}
 
 	// Types of ways data can be sent to the driver station from the rio
