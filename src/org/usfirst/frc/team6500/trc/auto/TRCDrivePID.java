@@ -397,7 +397,7 @@ public class TRCDrivePID
             {
                 mDrive.driveWheel(MotorType.kFrontLeft, 0.0);               // drive front left at none
                 mDrive.driveWheel(MotorType.kFrontRight, -smoothedSpeed);   // drive front right at negative speed
-                mDrive.driveWheel(MotorType.kRearLeft, smoothedSpeed);      // drive rear left at speed
+                mDrive.driveWheel(MotorType.kRearLeft, -smoothedSpeed);      // drive rear left at negative speed
                 mDrive.driveWheel(MotorType.kRearRight, -smoothedSpeed);    // drive rear right at negative speed
             }
             else if (action.getTurnWheel() == MotorType.kFrontRight)
@@ -405,11 +405,11 @@ public class TRCDrivePID
                 mDrive.driveWheel(MotorType.kFrontLeft, -smoothedSpeed);    // drive front left at negative speed
                 mDrive.driveWheel(MotorType.kFrontRight, 0.0);              // drive front right at none
                 mDrive.driveWheel(MotorType.kRearLeft, -smoothedSpeed);     // drive rear left at negative speed
-                mDrive.driveWheel(MotorType.kRearRight, smoothedSpeed);     // drive rear right at speed
+                mDrive.driveWheel(MotorType.kRearRight, -smoothedSpeed);     // drive rear right at negative speed
             }
             else if (action.getTurnWheel() == MotorType.kRearLeft)
             {
-                mDrive.driveWheel(MotorType.kFrontLeft, -smoothedSpeed);    // drive front left at negative speed
+                mDrive.driveWheel(MotorType.kFrontLeft, smoothedSpeed);    // drive front left at speed
                 mDrive.driveWheel(MotorType.kFrontRight, smoothedSpeed);    // drive front right at speed
                 mDrive.driveWheel(MotorType.kRearLeft, 0.0);                // drive rear left at none
                 mDrive.driveWheel(MotorType.kRearRight, smoothedSpeed);     // drive rear right at speed
@@ -417,7 +417,7 @@ public class TRCDrivePID
             else if (action.getTurnWheel() == MotorType.kRearRight)
             {
                 mDrive.driveWheel(MotorType.kFrontLeft, smoothedSpeed);     // drive front left at speed
-                mDrive.driveWheel(MotorType.kFrontRight, -smoothedSpeed);   // drive front right at negative speed
+                mDrive.driveWheel(MotorType.kFrontRight, smoothedSpeed);   // drive front right at speed
                 mDrive.driveWheel(MotorType.kRearLeft, smoothedSpeed);      // drive rear left at speed
                 mDrive.driveWheel(MotorType.kRearRight, 0.0);               // drive rear right at none
             }
