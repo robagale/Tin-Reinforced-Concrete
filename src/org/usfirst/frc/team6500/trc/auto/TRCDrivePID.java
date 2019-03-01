@@ -71,7 +71,7 @@ public class TRCDrivePID
 
     /**
      * Disables the auto driving functions from moving the robot in any other state
-     * than Autonomous
+     * than Autonomous (Recomended to call this in every disabled())
      */
     public static void denySubautonomousAction()
     {
@@ -509,7 +509,7 @@ public class TRCDrivePID
         TRCNetworkData.updateDataPoint("PIDOuput", 0.0);
         TRCNetworkData.updateDataPoint("PIDOutputSmoothed", 0.0);
 
-        if (names.length != values.length) TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: updateDriveDataPoints(): names and values have different sizes, points not updated.");
+        if (names.length != values.length) TRCNetworkData.logString(VerbosityType.Log_Error, "TRCDrivePID: updateDriveDataPoints(): names and values have different sizes, points not updated");
 
         for (int index = 0; index < names.length; index++)
         {
