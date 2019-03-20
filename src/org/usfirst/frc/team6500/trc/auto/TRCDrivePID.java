@@ -12,7 +12,8 @@ import org.usfirst.frc.team6500.trc.wrappers.systems.drives.TRCMecanumDrive;
 
 import org.usfirst.frc.team6500.trc.util.TRCNetworkData;
 import org.usfirst.frc.team6500.trc.util.TRCSpeed;
-import org.usfirst.frc.team6500.trc.util.TRCTypes.Direction;
+import org.usfirst.frc.team6500.trc.util.TRCTypes.DirectionType;
+import org.usfirst.frc.team6500.trc.util.TRCTypes.DriveActionType;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.DriveType;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.RobotSide;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.UnitType;

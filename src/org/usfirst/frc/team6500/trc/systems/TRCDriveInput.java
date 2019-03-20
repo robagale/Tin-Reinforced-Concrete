@@ -10,17 +10,19 @@ import java.util.HashMap;
 import org.usfirst.frc.team6500.trc.util.TRCController;
 import org.usfirst.frc.team6500.trc.util.TRCDriveParams;
 import org.usfirst.frc.team6500.trc.util.TRCNetworkData;
+import org.usfirst.frc.team6500.trc.util.TRCTypes.ControllerType;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.VerbosityType;
 
-import edu.wpi.first.wpilibj.GenericHID.Hand;
-import edu.wpi.first.wpilibj.XboxController;
+
 
 public class TRCDriveInput
 {
-	private static XboxController controller;
+	private static ArrayList<TRCController> inputSticks;
+	// private static HashMap<Integer, Joystick> inputSticks; removed this because you can just <joystick>.getPort()
 
-    private static HashMap<Integer, Runnable[]> bindings;  // <button key, [pressed action, released action]>
-
+    private static HashMap<Integer, HashMap<Object, Runnable>> pressFuncs; 
+	private static HashMap<Integer, HashMap<Object[], Runnable>> absenceFuncs; // oh god why does this work  // spelled "absence", not "absense" :P
+	/* Array in a HashMap in a HashMap... */
 	private static double baseSpeed = 0.0;
     private static double boostSpeed = 0.0;
     
@@ -30,11 +32,18 @@ public class TRCDriveInput
 	 * @param ports The ids of the USB ports that the controller is plugged in to
 	 * @param speedBase The default base speed of the robot
 	 */
-	public static void initializeDriveInput(int port, double speedBase, double speedBoost)
+	public static void initializeDriveInput(int[] ports, ControllerType types[], double speedBase, double speedBoost)
 	{
-		bindings = new HashMap<Integer, Runnable[]>();
+		inputSticks = new ArrayList<TRCController>();
+		pressFuncs = new HashMap<Integer, HashMap<Object, Runnable>>();
+		absenceFuncs = new HashMap<Integer, HashMap<Object[], Runnable>>();
 
-		controller = new XboxController(port);
+		for (int i = 0; i < ports.length; i++)
+		{
+			inputSticks.add(new TRCController(ports[i], types[i]));
+			pressFuncs.put(ports[i], new HashMap<Object, Runnable>());
+			absenceFuncs.put(ports[i], new HashMap<Object[], Runnable>());
+		}
 		
         baseSpeed = speedBase;
         boostSpeed = speedBoost;
@@ -60,34 +69,54 @@ public class TRCDriveInput
 	 * @param button The button index to test
 	 * @return The string representation of the passed button index
 	 */
-	private static String buttonToString(int button)
+	public static void bindButtonAbsence(int joystickPort, Object[] buttons, Runnable func)
 	{
-		switch (button)
-		{
-			case TRCController.BUTTON_A: return "A button";
-			case TRCController.BUTTON_B: return "B button";
-			case TRCController.BUTTON_X: return "X button";
-			case TRCController.BUTTON_Y: return "Y button";
-			case TRCController.BUTTON_START: return "Start button";
-			case TRCController.BUTTON_BACK: return "Back button";
-			case TRCController.BUMPER_LEFT: return "Left bumper";
-			case TRCController.BUMPER_RIGHT: return "Right bumper";
-		}
-		return "<unrecognized button type>";
+		absenceFuncs.get(joystickPort).put(buttons, func);
+		TRCNetworkData.logString(VerbosityType.Log_Debug, "An absence binding has been created for " + buttons.length + "buttons on Joystick " + joystickPort);
 	}
     
 	/**
 	 * Checks every button on the controller, and if the button is pressed and has a
 	 * function bound to it then the function will be run
 	 */
-	public static void updateBindings() {
-		for (Integer button : bindings.keySet()) // get all supported buttons in pressFuncs
+	public static void checkButtonBindings()
+	{
+		for (int index = 0; index < inputSticks.size(); index++) // get all input sticks (2; gunner and driver)
 		{
-			boolean isPressed = getButton(button);
-			if (isPressed)
-				bindings.get(button)[0].run();
-			else
-				bindings.get(button)[1].run();
+			int stickPort = inputSticks.get(index).getPort(); // get the port of that joystick
+
+			if (pressFuncs.containsKey(stickPort)) // if the joystick is supported on pressFuncs
+			{
+				for (Object button : pressFuncs.get(stickPort).keySet()) // get all supported buttons in pressFuncs
+				{
+					if (inputSticks.get(stickPort).getButton(button)) // if the button is pressed, run it's runnable
+					{
+						//System.out.println(button);
+						pressFuncs.get(stickPort).get(button).run(); // RUN!
+					}
+				}
+			}
+			
+			if (absenceFuncs.containsKey(stickPort)) // if the joystick is supported on absenceFuncs
+			{
+            	for (Object[] buttonList : absenceFuncs.get(stickPort).keySet()) // get all supported buttons in absenceFuncs
+				{
+					for (int i = 0; i < buttonList.length; i++) // check all buttons in the button list
+					{
+						if (!inputSticks.get(stickPort).getButton(buttonList[i])) // if the button is not pressed...
+						{
+							if (i == buttonList.length - 1)
+							{
+								absenceFuncs.get(inputSticks.get(stickPort).getPort()).get(buttonList).run();
+								break;
+							}
+							continue;
+						}
+						break;
+					} // This part of the function runs through all of the absence bindings for all joysticks,
+					  // and if after going through all of them not being pressed on the last one it activates the bound function
+				}
+			}
 		}
 	}
 
@@ -99,18 +128,12 @@ public class TRCDriveInput
 	 */
 	public static boolean getButton(int button)
 	{
-		switch (button) 
-		{
-		case TRCController.BUTTON_A: return controller.getAButton();
-		case TRCController.BUTTON_B: return controller.getBButton();
-		case TRCController.BUTTON_X: return controller.getXButton();
-		case TRCController.BUTTON_Y: return controller.getYButton();
-		case TRCController.BUTTON_START: return controller.getStartButton();
-		case TRCController.BUTTON_BACK: return controller.getBackButton();
-		case TRCController.BUMPER_LEFT: return controller.getBumper(Hand.kLeft);
-		case TRCController.BUMPER_RIGHT: return controller.getBumper(Hand.kRight);
-		}
-		return false;
+		return inputSticks.get(joystickPort).getButton(button);
+	}
+
+	public static TRCController getController(int joystickPort)
+	{
+		return inputSticks.get(joystickPort);
 	}
 	
 	/**
@@ -133,9 +156,10 @@ public class TRCDriveInput
 	{
 		double multiplier;
 		
-		multiplier = getRawThrottle(); // Range is -1 to 1, change to 0 to 2 cuz its easier to work with
-        multiplier = 1 - multiplier;   // Throttle is backwards from expectation, flip it
-        if (controller.getPOV() != 1)
+		multiplier = getRawThrottle(joystickPort) + 1;        // Range is -1 to 1, change to 0 to 2 cuz its easier to work with
+		multiplier = multiplier / 2;                          // Reduce to a scale between 0 to 1
+        multiplier = 1 - multiplier;                          // Throttle is backwards from expectation, flip it
+        if (!inputSticks.get(joystickPort).getButton(1))
         {
             multiplier = multiplier * baseSpeed; // Mix in some of that default...
         }

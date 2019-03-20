@@ -30,6 +30,8 @@ public class TRCNetworkData
     private static HashMap<Integer, SendableChooser<Integer>> options;
     private static HashMap<String, NetworkTableEntry> dataPoints;
 
+    private static int vOptionsID;
+
     /**
      * Setup the sending of data to the driver station specifing with DIType how it should be done.
      * 
@@ -61,25 +63,37 @@ public class TRCNetworkData
 
         String verbosityOptions[] = new String[3];
         verbosityOptions[0] = "Debug (All Messages)";
-        verbosityOptions[1] = " Info (Limited Messages)";
+        verbosityOptions[1] = "Info (Limited Messages)";
         verbosityOptions[2] = "Error (Critical Messages)";
         putOptions(verbosityOptions, 0);
     }
 
+
+
+    public static NetworkTable getVisionTable()
+    {
+        return table.getSubTable("vision");
+    }
+
     public static VerbosityType getVerbosity()
     {
-        return VerbosityType.Log_Debug;
-        // switch (getSelection(vOptionsID))
-        // {
-        //     case 0:
-        //         return VerbosityType.Log_Debug;
-        //     case 1:
-        //         return VerbosityType.Log_Info;
-        //     case 2:
-        //         return VerbosityType.Log_Error;
-        //     default:
-        //         return null;
-        // }
+        try {
+        switch (getSelection(vOptionsID))
+        {
+            case 0:
+                return VerbosityType.Log_Debug;
+            case 1:
+                return VerbosityType.Log_Info;
+            case 2:
+                return VerbosityType.Log_Error;
+            default:
+                return VerbosityType.Log_Debug;
+        }
+        }
+        catch (Exception e)
+        {
+            return VerbosityType.Log_Debug;
+        }
     }
 
     /**
@@ -92,10 +106,6 @@ public class TRCNetworkData
     {
         if (getVerbosity().ordinal() > v.ordinal())
             return;
-
-        String oldLog = logEntry.getString("");
-
-        if (oldLog == "")
         {
             System.out.println("ERROR: NetworkTable Server has broken.  Something has gone critically wrong with networking.");
             return;
