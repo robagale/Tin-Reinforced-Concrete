@@ -66,6 +66,7 @@ public class TRCNetworkData
         verbosityOptions[1] = "Info (Limited Messages)";
         verbosityOptions[2] = "Error (Critical Messages)";
         putOptions(verbosityOptions, 0);
+        vOptionsID = 0;
     }
 
 
@@ -104,8 +105,11 @@ public class TRCNetworkData
      */
     public static void logString(VerbosityType v, String logData)
     {
-        if (getVerbosity().ordinal() > v.ordinal())
-            return;
+        if (getVerbosity().ordinal() > v.ordinal()) { return; }
+
+        String oldLog = logEntry.getString("");
+
+        if (oldLog == "")
         {
             System.out.println("ERROR: NetworkTable Server has broken.  Something has gone critically wrong with networking.");
             return;
