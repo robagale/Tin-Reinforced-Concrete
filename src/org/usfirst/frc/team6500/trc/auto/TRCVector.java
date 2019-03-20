@@ -91,12 +91,13 @@ public class TRCVector
      * https://www.roboteq.com/images/article-images/frontpage/wheel-rotations.jpg
      * for details.
      * 
-     * @param value     the measurement or value of the type
-     * @param unitType  the type of measurement
      * @param direction the direction in which to move the robot, only ForwardLeft,
      *                  ForwardRight, BackwardLeft, & BackwardRight are supported
+     * @param value     the measurement or value of the type
+     * @param unitType  the type of measurement
+     * 
      */
-    public TRCVector(double value, UnitType unitType, Direction direction)
+    public TRCVector(Direction direction, double value, UnitType unitType)
     {
         if (!this.validate(type, value, unitType))
         {
@@ -117,11 +118,11 @@ public class TRCVector
      * https://www.roboteq.com/images/article-images/frontpage/wheel-rotations.jpg
      * for details.
      * 
+     * @param turnWheel the wheel on which the robot will turn on
      * @param value     the measurement or value of the type
      * @param unitType  the type of measurement
-     * @param turnWheel the wheel on which the robot will turn on
      */
-    public TRCVector(double value, UnitType unitType, MotorType turnWheel)
+    public TRCVector(MotorType turnWheel, double value, UnitType unitType)
     {
         if (!this.validate(type, value, unitType))
         {
@@ -141,12 +142,12 @@ public class TRCVector
      * https://www.roboteq.com/images/article-images/frontpage/wheel-rotations.jpg
      * for details.
      * 
-     * @param value    the measurement or value of the type
-     * @param unitType the type of measurement
      * @param turnSide the side on which to turn the robot, only kFront & kRear are
      *                 supported
+     * @param value    the measurement or value of the type
+     * @param unitType the type of measurement
      */
-    public TRCVector(double value, UnitType unitType, RobotSide turnSide)
+    public TRCVector(RobotSide turnSide, double value, UnitType unitType)
     {
         if (!this.validate(type, value, unitType))
         {

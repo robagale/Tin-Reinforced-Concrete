@@ -80,6 +80,14 @@ public class TRCDrivePID
     }
 
     /**
+     * Returns if subautonomous actions are allowed
+     */
+    public static boolean isSubautonomousAuthorized()
+    {
+        return autoAuthorized;
+    }
+
+    /**
      * Executes an action based on the specified vector
      * 
      * @param action The type of action (a {@link TRCVector}) the robot should take
