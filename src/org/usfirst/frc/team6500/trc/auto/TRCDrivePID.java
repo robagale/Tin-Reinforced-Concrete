@@ -141,8 +141,6 @@ public class TRCDrivePID
         PID.setSetpoint(action.translateValue(UnitType.Inches));
         TRCSpeed autoSpeed = new TRCSpeed();
 
-        if (!driving) return;
-
         driving = true;
         int deadbandcounter = 0;
 
@@ -202,8 +200,6 @@ public class TRCDrivePID
         PID.setSetpoint(action.translateValue(UnitType.Inches));
         TRCSpeed autoSpeed = new TRCSpeed();
 
-        if (!driving) return;
-
         driving = true;
         int deadbandcounter = 0;
 
@@ -249,8 +245,6 @@ public class TRCDrivePID
         PID.setOutputLimits(-maxSpeed, maxSpeed);
         PID.setSetpoint(action.translateValue(UnitType.Degrees));
         TRCSpeed autoSpeed = new TRCSpeed();
-
-        if (!driving) return;
 
         driving = true;
         int deadbandcounter = 0;
@@ -318,8 +312,6 @@ public class TRCDrivePID
             inversion = -1.0; // invert
         }
         PID.setSetpoint(action.translateValue(UnitType.Inches)*inversion);
-
-        if (driving) return;
 
         driving = true;
         int deadbandcounter = 0;
@@ -390,8 +382,6 @@ public class TRCDrivePID
         PID.setOutputLimits(-maxSpeed, maxSpeed);
         PID.setSetpoint(action.translateValue(UnitType.Degrees));
         TRCSpeed autoSpeed = new TRCSpeed();
-
-        if (driving) return;
 
         driving = true;
         int deadbandcounter = 0;
@@ -473,8 +463,6 @@ public class TRCDrivePID
         PID.setOutputLimits(-maxSpeed, maxSpeed);
         PID.setSetpoint(action.translateValue(UnitType.Degrees));
         TRCSpeed autoSpeed = new TRCSpeed();
-
-        if (driving) return;
 
         driving = true;
         int deadbandcounter = 0;
