@@ -11,6 +11,7 @@ import org.usfirst.frc.team6500.trc.wrappers.systems.drives.TRCDifferentialDrive
 import org.usfirst.frc.team6500.trc.wrappers.systems.drives.TRCMecanumDrive;
 import org.usfirst.frc.team6500.trc.util.TRCNetworkData;
 import org.usfirst.frc.team6500.trc.util.TRCSpeed;
+import org.usfirst.frc.team6500.trc.util.TRCTypes.DirectionType;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.DriveActionType;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.DriveType;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.VerbosityType;
@@ -110,7 +111,7 @@ public class TRCDrivePID
 
             while (deadbandcounter < verificationMin && RobotState.isAutonomous())
             {
-                double newSpeed = MPID.getOutput(encoders.getAverageDistanceTraveled());
+                double newSpeed = MPID.getOutput(encoders.getAverageDistanceTraveled(DirectionType.ForwardBackward));
                 TRCNetworkData.updateDataPoint("PIDOutput", newSpeed);
                 double smoothedSpeed = autoSpeed.calculateSpeed(newSpeed, 0.85);
                 TRCNetworkData.updateDataPoint("PIDOutputSmoothed", smoothedSpeed);
@@ -123,15 +124,13 @@ public class TRCDrivePID
                 {
                     ((TRCDifferentialDrive) drive).arcadeDrive(smoothedSpeed, 0.0, false);
                 }
-                if (Math.abs(encoders.getAverageDistanceTraveled() - measurement) < deadband)
-                { // if the distance has been reached
-                    deadbandcounter++;
-                } else 
+
+                if (Math.abs(encoders.getAverageDistanceTraveled(DirectionType.ForwardBackward) - measurement) < deadband)
                 {
-                    driving = false;
-                    return;
+                    deadbandcounter++;
                 }
             }
+
             driving = false;
         }
     }
@@ -154,22 +153,19 @@ public class TRCDrivePID
 
             while (deadbandcounter < verificationMin && RobotState.isAutonomous())
             {
-                double newSpeed = MPID.getOutput(encoders.getAverageDistanceTraveled());
+                double newSpeed = MPID.getOutput(encoders.getAverageDistanceTraveled(DirectionType.LeftRight));
                 TRCNetworkData.updateDataPoint("PIDOutput", newSpeed);
                 double smoothedSpeed = autoSpeed.calculateSpeed(newSpeed, 1.0);
                 TRCNetworkData.updateDataPoint("PIDOutputSmoothed", smoothedSpeed);
-
+                
                 ((TRCMecanumDrive) drive).driveCartesian(0.0, smoothedSpeed, 0.0);
 
-                if (Math.abs(encoders.getAverageDistanceTraveled() - measurement) < deadband)
+                if (Math.abs(encoders.getAverageDistanceTraveled(DirectionType.LeftRight) - measurement) < deadband)
                 {
                     deadbandcounter++;
-                } else
-                {
-                    driving = false;
-                    return;
                 }
             }
+            
             driving = false;
         }
     }
@@ -209,10 +205,6 @@ public class TRCDrivePID
                 if (Math.abs(gyro.getAngle() - measurement) < deadband)
                 {
                     deadbandcounter++;
-                } else
-                {
-                    driving = false;
-                    return;
                 }
             }
 
