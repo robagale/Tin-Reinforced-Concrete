@@ -3,6 +3,7 @@ package org.usfirst.frc.team6500.trc.wrappers.sensors;
 import org.usfirst.frc.team6500.trc.util.TRCNetworkData;
 import org.usfirst.frc.team6500.trc.util.TRCTypes;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.VerbosityType;
+import org.usfirst.frc.team6500.trc.util.TRCTypes.DirectionType;
 import org.usfirst.frc.team6500.trc.util.TRCTypes.EncoderType;;
 
 public class TRCEncoderSet
@@ -18,10 +19,15 @@ public class TRCEncoderSet
 	/**
 	 * Consolidation of encoders on a robot's wheels for ease of use
 	 * 
-	 * @param dioports The digital input/output ports which the encoders are plugged into
-	 * @param dpp The distance per pulse of the wheels. Equation: (distance robot travels in one rotation) / (pulses per revolution)
-	 * @param lowres Only use the first channel for reading encoder values. Less accurate, but uses fewer ports. If this is enabled, dioports's consecutive values should be duplicates.
-	 * @param totalwheels How many encoders are plugged in. This must be half the length of dioports.
+	 * @param dioports    The digital input/output ports which the encoders are
+	 *                    plugged into
+	 * @param dpp         The distance per pulse of the wheels. Equation: (distance
+	 *                    robot travels in one rotation) / (pulses per revolution)
+	 * @param lowres      Only use the first channel for reading encoder values.
+	 *                    Less accurate, but uses fewer ports. If this is enabled,
+	 *                    dioports's consecutive values should be duplicates.
+	 * @param totalwheels How many encoders are plugged in. This must be half the
+	 *                    length of dioports.
 	 */
 	public TRCEncoderSet(int[] dioports, double[] dpp, boolean lowres, int totalwheels, EncoderType[] types)
 	{
@@ -48,7 +54,6 @@ public class TRCEncoderSet
 
 		TRCNetworkData.createDataPoint("EncoderSet " + this.toString());
 	}
-	
 	
 	/**
 	 * Resets all encoders to zero distance
@@ -86,13 +91,36 @@ public class TRCEncoderSet
 				((TRCTalonEncoder) this.internalEncoders[encodernum]).reset();
 			}
 	}
+
+	private static double getDirectionalDistance (DirectionType direction, double originalDistance, int wheelNum)
+	{
+		switch(direction)
+		{
+			case ForwardBackward:
+				return originalDistance;
+			case LeftRight:
+				switch (wheelNum)
+				{
+					case 0:
+					case 3:
+						return originalDistance;
+					case 1:
+					case 2:
+						return -originalDistance;
+					default:
+						return 0.0;
+				}
+			default:
+				return 0.0;
+		}
+	}
 	
 	/**
 	 * Gives the average distance all encoders have traveled
 	 * 
 	 * @return The average of the distance traveled by all the encoders
 	 */
-	public double getAverageDistanceTraveled()
+	public double getAverageDistanceTraveled(DirectionType direction)
 	{
 		double distancesum = 0.0;
 		
@@ -100,11 +128,11 @@ public class TRCEncoderSet
 		{
 			if (this.types[i] == EncoderType.Digital)
 			{
-				distancesum += ((TRCEncoder) this.internalEncoders[i]).getDistance();
+				distancesum += getDirectionalDistance(direction, ((TRCEncoder) this.internalEncoders[i]).getDistance(), i);
 			}
 			else
 			{
-				distancesum += ((TRCTalonEncoder) this.internalEncoders[i]).getDistance();
+				distancesum += getDirectionalDistance(direction, ((TRCTalonEncoder) this.internalEncoders[i]).getDistance(), i);
 			}
 		}
 		
@@ -113,7 +141,8 @@ public class TRCEncoderSet
 	}
 
 	/**
-	 * Gives the average absolute distance all encoders have traveled; useful for measuring rotation
+	 * Gives the average absolute distance all encoders have traveled; useful for
+	 * measuring rotation
 	 * 
 	 * @return The average of the absolute distances traveled by all the encoders
 	 */
@@ -157,16 +186,18 @@ public class TRCEncoderSet
 	
 	/**
 	 * Use this method after driving in a straight line to calibrate them to account for mechanical irregularities
+	 * 
+	 * Untested.
 	 */
-	public void uniformCalibrateDistancePerPulse()
-	{
-		double averageDistanceTraveled = this.getAverageDistanceTraveled();
+	// public void uniformCalibrateDistancePerPulse()
+	// {
+	// 	double averageDistanceTraveled = this.getAverageDistanceTraveled();
 		
-		// for (TRCEncoder encoder : this.internalEncoders)
-		// {
-		// 	encoder.setDistancePerPulse(encoder.getDistancePerPulse() * averageDistanceTraveled / encoder.getDistance());
-		// }
+	// 	// for (TRCEncoder encoder : this.internalEncoders)
+	// 	// {
+	// 	// 	encoder.setDistancePerPulse(encoder.getDistancePerPulse() * averageDistanceTraveled / encoder.getDistance());
+	// 	// }
 
-		TRCNetworkData.logString(VerbosityType.Log_Debug, "EncoderSet " + this.toString() + " has been calibrated");
-	}
+	// 	TRCNetworkData.logString(VerbosityType.Log_Debug, "EncoderSet " + this.toString() + " has been calibrated");
+	// }
 }

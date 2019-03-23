@@ -76,6 +76,26 @@ public class TRCTypes
 		FullReverse,
 	}
 
+	public enum RobotSide
+	{
+		kFront,
+		kLeft,
+		kRight,
+		kRear
+	}
+
+	public enum Direction
+	{
+		Forward,
+		ForwardRight,
+		Right,
+		BackwardRight,
+		Backward,
+		BackwardLeft,
+		Left,
+		ForwardLeft
+	}
+
 	// Types of actions a TRCPneumaticSystem can execute
 	public enum PneumaticSystemActionType
 	{
@@ -84,11 +104,22 @@ public class TRCTypes
 	}
 
 	// Types of actions a drivetrain can execute in autonomous
-	public enum DriveActionType
+	public enum DriveAction
 	{
-		Forward,
-		Right,
-		Rotate,
+		ForwardBack,
+		LeftRight,
+		Rotation,
+		Diagonal,
+		OnCorner,
+		OnAxis
+	}
+
+	public enum UnitType
+	{
+		General, // General is a -1.0 to 1.0 representing anything
+				 // As an understood rule, 1.0 of General translates to 12 inches or 360 degrees
+		Inches, // inches measurement
+		Degrees // 0 - 360
 	}
 
 	// Types of ways data can be sent to the driver station from the rio
@@ -105,7 +136,56 @@ public class TRCTypes
 		Log_Info,
 		Log_Error,
 	}
+
+	// Types of controllers
+	public enum ControllerType
+	{
+		Xbox360,    // Microsoft XBox 360 wired controller
+		Extreme3D,  // Logitech Extreme 3D Joystick, included in KoP
+		Generic,    // Any other basic HID compliant joystick
+	}
+
+	// Types of buttons on an Xbox controller (these are precisely accurate to the HID output from the controller, don't edit them)
+	public enum XboxButtonType
+	{
+		A,
+		B,
+		X,
+		Y,
+		LeftBumper,
+		RightBumper,
+		Back,
+		Start,
+		LeftStick,
+		RightStick,
+	}
+
+	// Types of axis of an Xbox controller (these are precisely accurate to the HID output from the controller, don't edit them)
+	public enum XboxAxisType
+	{
+		LeftX,
+		LeftY,
+		LeftTrigger,
+		RightTrigger,
+		RightX,
+		RightY,
+	}
+
+	// Types of buttons on a controller
+	public enum ControllerButtonType
+	{
+		Xbox,
+		Generic,
+	}
+
+	// Types of directions the robot can move, for use with the encoders
+	public enum DirectionType
+	{
+		ForwardBackward,
+		LeftRight,
+	}
 	
+
 	// Positions a robot can start in at the beginning of a match
 	public enum Position
 	{
@@ -122,7 +202,6 @@ public class TRCTypes
 			else                             { return false; }
 		}
 	}
-
 
 	public static Object encoderTypeToObject(int[] ports, double dpp, boolean lowres, boolean inverted, EncoderType type)
 	{

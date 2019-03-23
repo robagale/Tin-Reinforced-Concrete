@@ -15,23 +15,17 @@ public class TRCDirectionalSystemAction extends Thread
     private double delay;
     private boolean thread;
 
-    private static HashMap<String, TRCDirectionalSystem> systemRegistry;
+    private static HashMap<String, TRCDirectionalSystem> systemRegistry; // registry of systems
 
-    
     /**
      * Register a DirectionalSystem for later use
      */
     public static void registerSystem(String systemName, TRCDirectionalSystem actionSystem)
     {
-		try
-		{
-			systemRegistry.put(systemName, actionSystem);
-		}
-		catch (Exception e)
-		{
+		if (systemRegistry == null)
 			systemRegistry = new HashMap<String, TRCDirectionalSystem>();
-			systemRegistry.put(systemName, actionSystem);
-		}
+			
+		systemRegistry.put(systemName, actionSystem);
     }
 
 	/**
@@ -74,23 +68,12 @@ public class TRCDirectionalSystemAction extends Thread
 	{
 		switch(this.type)
 		{
-		case Stop:
-			this.system.fullStop();
-			break;
-		case Forward:
-			this.system.driveForward();
-			break;
-		case Reverse:
-			this.system.driveReverse();
-			break;
-		case FullForward:
-			this.system.fullDriveForward();
-			break;
-		case FullReverse:
-			this.system.fullDriveReverse();
-			break;
-		default:
-			break;
+		case Stop: this.system.fullStop(); break;
+		case Forward: this.system.driveForward(); break;
+		case Reverse: this.system.driveReverse(); break;
+		case FullForward: this.system.fullDriveForward(); break;
+		case FullReverse: this.system.fullDriveReverse(); break;
+		default: break;
 		}
 		
 		Timer.delay(this.delay);
